@@ -75,6 +75,32 @@ uv run locallens ask --no-rerank "..."            # skip the cross-encoder, fast
 uv run locallens chat                             # multi-turn; type /quit to leave
 ```
 
+### Chat window
+
+A ChatGPT-style chat page, built with Flutter and served by LocalLens itself on `127.0.0.1`:
+
+```bash
+uv run locallens ui                               # opens http://127.0.0.1:8765 in your browser
+uv run locallens ui --port 9000 --no-browser      # other port, don't open the browser
+```
+
+- Type a question and press Enter (Shift+Enter for a new line). Answers stream in with
+  `[n]` citations, and a **Sources** panel lists every retrieved chunk, with cited ones first.
+- Click 📎 (or **Add files to analyse**) to upload PDFs and images. They are saved to
+  `~/.locallens/uploads` and indexed straight away, just like `locallens ingest`.
+- The settings button turns on "Read every scan with the vision model", which is the same as `--vlm all-scans`.
+- The folder button lists everything that is indexed.
+
+The page has to be built once, which needs the [Flutter SDK](https://docs.flutter.dev/get-started/install).
+After that, using it needs only LocalLens:
+
+```bash
+cd ui
+flutter build web --no-web-resources-cdn          # output: ui/build/web
+```
+
+`--no-web-resources-cdn` matters: without it, Flutter loads its rendering engine from Google's CDN.
+
 See and manage what is indexed:
 
 ```bash
@@ -136,6 +162,10 @@ Delete that folder to start over.
   still works; nothing else can reach out.
 - Hugging Face and Transformers run in offline mode.
 - There is no telemetry, crash reporting or update check.
+- The chat window's server listens on `127.0.0.1` only and answers only requests whose `Host`
+  is `127.0.0.1` or `localhost`, so other websites cannot reach it, even through DNS rebinding.
+  Its pages carry a Content-Security-Policy that lets the browser contact only that server. The
+  rendering engine and fonts are bundled, and Flutter's download of missing fonts from Google is switched off.
 - `tests/test_offline.py` ingests a document and asks a question with the guard active,
   so any outbound attempt fails the test suite.
 
@@ -155,7 +185,7 @@ Delete that folder to start over.
 
 ```bash
 uv sync --extra dev
-uv run pytest            # 20 tests; the end-to-end test is skipped unless Ollama is running
+uv run pytest            # 30 tests; the end-to-end test is skipped unless Ollama is running
 uv run ruff check src tests
 uv run locallens eval eval/golden.json             # retrieval hit rate, answer accuracy, citation validity
 uv run locallens eval eval/golden.json --no-generate   # retrieval metrics only, fast
@@ -174,6 +204,7 @@ check afterwards.
 ## Roadmap
 
 - Validate the handwriting auto-routing threshold on real handwritten samples.
-- Local web UI with page previews and highlighted citations, bound to localhost.
+- Page previews and highlighted citations in the chat window.
+- macOS desktop version of the chat window (`ui/macos` is scaffolded; needs Xcode and a non-browser API client).
 - Watch-folder mode and `uv tool install` packaging.
 - Optional encryption of the index at rest.
