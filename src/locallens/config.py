@@ -51,6 +51,10 @@ class Config:
     def meta_db(self) -> Path:
         return self.index_dir / "meta.sqlite"
 
+    @property
+    def uploads_dir(self) -> Path:
+        return HOME / "uploads"   # files added through the chat UI
+
 
 def load() -> Config:
     if CONFIG_PATH.exists():

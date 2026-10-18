@@ -24,6 +24,12 @@ class Hit:
     heading_path: list[str]
     score: float
 
+    def snippet(self, limit: int = 110) -> str:
+        """Chunk text without its [doc > heading] prefix, on one line, trimmed for display."""
+        text = self.text.split("\n", 1)[-1] if self.text.startswith("[") else self.text
+        text = text.replace("\n", " ")
+        return text[:limit] + "…" if len(text) > limit else text
+
 
 RRF_K = 60
 

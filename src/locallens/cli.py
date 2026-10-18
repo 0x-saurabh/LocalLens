@@ -130,10 +130,7 @@ def _answer(question: str, cfg, store, embedder, rerank: bool | None = None) -> 
     table.add_column("snippet")
     for h in hits:
         mark = "[green]●[/]" if h.n in valid else "[dim]○[/]"
-        snippet = h.text.split("\n", 1)[-1] if h.text.startswith("[") else h.text  # drop heading prefix
-        snippet = snippet.replace("\n", " ")
-        snippet = snippet[:110] + "…" if len(snippet) > 110 else snippet
-        table.add_row(f"{mark} {h.n}", escape(Path(h.doc_path).name), str(h.page), escape(snippet))
+        table.add_row(f"{mark} {h.n}", escape(Path(h.doc_path).name), str(h.page), escape(h.snippet()))
     console.print(table)
 
 
@@ -228,6 +225,37 @@ def chat() -> None:
         if q in {"/quit", "/exit", "/q"}:
             break
         _answer(q, cfg, store, embedder)
+
+
+@app.command()
+def ui(
+    port: Annotated[int, typer.Option("--port", help="Local port for the chat page.")] = 8765,
+    no_browser: Annotated[bool, typer.Option("--no-browser", help="Do not open the browser.")] = False,
+) -> None:
+    """Open the chat window in your browser (served on 127.0.0.1 only)."""
+    import threading
+    import webbrowser
+
+    from locallens.server import WEB_DIR, Backend, make_server
+
+    try:
+        server = make_server(Backend(config.load()), port=port)
+    except OSError as exc:
+        console.print(f"[red]cannot use port {port}[/] ({exc.strerror}) — is `locallens ui` already running? "
+                      f"Try --port {port + 1}")
+        raise typer.Exit(1) from None
+    url = f"http://127.0.0.1:{port}/"
+    if not (WEB_DIR / "index.html").exists():
+        console.print("[yellow]chat UI not built[/] — run: cd ui && flutter build web --no-web-resources-cdn")
+    console.print(f"[bold]LocalLens chat[/] at {url} — offline. Press Ctrl+C to stop.")
+    if not no_browser:
+        threading.Timer(0.4, webbrowser.open, (url,)).start()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
 
 
 @app.command()
